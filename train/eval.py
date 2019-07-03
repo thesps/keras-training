@@ -26,7 +26,7 @@ get_custom_objects().update({"ZeroSomeWeights": ZeroSomeWeights})
 import yaml
 from train import parse_config, get_features
 from quantized_layers import Clip, BinaryDense, TernaryDense, QuantizedDense
-from models import binary_tanh, ternary_tanh, quantized_relu
+from models import binary_tanh, ternary_tanh, quantized_relu, relu1
 
 # To turn off GPU
 #os.environ['CUDA_VISIBLE_DEVICES'] = ''
@@ -144,6 +144,7 @@ if __name__ == "__main__":
                                                            'binary_tanh': binary_tanh,
                                                            'ternary_tanh': ternary_tanh,
                                                            'quantized_relu': quantized_relu,
+                                                            'relu1': relu1,
                                                            'Clip': Clip})
 
     y_predict = makeRoc(X_test, labels, y_test, model, options.outputDir)
