@@ -20,6 +20,8 @@ from sklearn.model_selection import train_test_split
 from sklearn import preprocessing
 from sklearn.metrics import confusion_matrix
 import itertools
+sys.path.insert(0, "../models")
+sys.path.insert(0, "../layers")
 from constraints import ZeroSomeWeights
 from keras.utils.generic_utils import get_custom_objects
 get_custom_objects().update({"ZeroSomeWeights": ZeroSomeWeights})
@@ -34,7 +36,7 @@ from models import binary_tanh, ternary_tanh, quantized_relu
 # confusion matrix code from Maurizio
 # /eos/user/m/mpierini/DeepLearning/ML4FPGA/jupyter/HbbTagger_Conv1D.ipynb
 def plot_confusion_matrix(cm, classes,
-                          normalize=False, 
+                          normalize=False,
                           title='Confusion matrix',
                           cmap=plt.cm.Blues):
     """
@@ -68,24 +70,24 @@ def makeRoc(features_val, labels, labels_val, model, outputDir):
 
     print('in makeRoc()')
     if 'j_index' in labels: labels.remove('j_index')
-        
+
     predict_test = model.predict(features_val)
 
     df = pd.DataFrame()
-    
+
     fpr = {}
     tpr = {}
     auc1 = {}
-    
-    plt.figure()       
+
+    plt.figure()
     for i, label in enumerate(labels):
         df[label] = labels_val[:,i]
         df[label + '_pred'] = predict_test[:,i]
-        
+
         fpr[label], tpr[label], threshold = roc_curve(df[label],df[label+'_pred'])
 
         auc1[label] = auc(fpr[label], tpr[label])
-            
+
         plt.plot(tpr[label],fpr[label],label='%s tagger, AUC = %.1f%%'%(label.replace('j_',''),auc1[label]*100.))
     plt.semilogy()
     plt.xlabel("Signal Efficiency")
@@ -94,11 +96,11 @@ def makeRoc(features_val, labels, labels_val, model, outputDir):
     plt.grid(True)
     plt.legend(loc='upper left')
     plt.figtext(0.25, 0.90,'hls4ml',fontweight='bold', wrap=True, horizontalalignment='right', fontsize=14)
-    #plt.figtext(0.35, 0.90,'preliminary', style='italic', wrap=True, horizontalalignment='center', fontsize=14) 
+    #plt.figtext(0.35, 0.90,'preliminary', style='italic', wrap=True, horizontalalignment='center', fontsize=14)
     plt.savefig('%s/ROC.pdf'%(options.outputDir))
     return predict_test
 
-    
+
 def _byteify(data, ignore_dicts = False):
     # if this is a unicode string, return its string representation
     if isinstance(data, six.text_type):
@@ -127,12 +129,12 @@ if __name__ == "__main__":
     (options,args) = parser.parse_args()
 
     yamlConfig = parse_config(options.config)
-    
-    if os.path.isdir(options.outputDir):
-        #raise Exception('output directory must not exist yet')
-        raw_input("Warning: output directory exists. Press Enter to continue...")
-    else:
-        os.mkdir(options.outputDir)
+
+    #if os.path.isdir(options.outputDir):
+    #    #raise Exception('output directory must not exist yet')
+    #    raw_input("Warning: output directory exists. Press Enter to continue...")
+    #else:
+    #    os.mkdir(options.outputDir)
 
     X_train_val, X_test, y_train_val, y_test, labels  = get_features(options, yamlConfig)
 
@@ -157,7 +159,7 @@ if __name__ == "__main__":
     plot_confusion_matrix(cnf_matrix, classes=[l.replace('j_','') for l in labels],
                               title='Confusion matrix')
     plt.figtext(0.28, 0.90,'hls4ml',fontweight='bold', wrap=True, horizontalalignment='right', fontsize=14)
-    #plt.figtext(0.38, 0.90,'preliminary', style='italic', wrap=True, horizontalalignment='center', fontsize=14) 
+    #plt.figtext(0.38, 0.90,'preliminary', style='italic', wrap=True, horizontalalignment='center', fontsize=14)
     plt.savefig(options.outputDir+"/confusion_matrix.pdf")
     # Plot normalized confusion matrix
     plt.figure()
@@ -165,9 +167,9 @@ if __name__ == "__main__":
                               title='Normalized confusion matrix')
 
     plt.figtext(0.28, 0.90,'hls4ml',fontweight='bold', wrap=True, horizontalalignment='right', fontsize=14)
-    #plt.figtext(0.38, 0.90,'preliminary', style='italic', wrap=True, horizontalalignment='center', fontsize=14) 
+    #plt.figtext(0.38, 0.90,'preliminary', style='italic', wrap=True, horizontalalignment='center', fontsize=14)
     plt.savefig(options.outputDir+"/confusion_matrix_norm.pdf")
-        
+
     import json
 
     if os.path.isfile('%s/full_info.log'%os.path.dirname(options.inputModel)):
@@ -200,4 +202,4 @@ if __name__ == "__main__":
         plt.ylabel('accuracy')
         plt.savefig(options.outputDir+"/acc.pdf")
 
-        
+

@@ -15,6 +15,8 @@ from keras.layers import Input
 from sklearn.model_selection import train_test_split
 from sklearn import preprocessing
 import yaml
+sys.path.insert(0, "../models")
+sys.path.insert(0, "../layers")
 import models
 
 # To turn off GPU
@@ -35,10 +37,10 @@ def get_features(options, yamlConfig):
 
     print(treeArray.shape)
     print(treeArray.dtype.names)
-    
+
     # List of features to use
     features = yamlConfig['Inputs']
-    
+
     # List of labels to use
     labels = yamlConfig['Labels']
 
@@ -48,13 +50,13 @@ def get_features(options, yamlConfig):
 
     features_df = features_labels_df[features]
     labels_df = features_labels_df[labels]
-    
+
     if 'Conv' in yamlConfig['InputType']:
         labels_df = labels_df.drop_duplicates()
-        
-    # Convert to numpy array 
+
+    # Convert to numpy array
     features_val = features_df.values
-    labels_val = labels_df.values     
+    labels_val = labels_df.values
 
     if 'j_index' in features:
         features_val = features_val[:,:-1] # drop the j_index feature
@@ -72,7 +74,7 @@ def get_features(options, yamlConfig):
             nParticles = len(features_val_i)
             if nParticles>yamlConfig['MaxParticles']:
                 features_val_i =  features_val_i[0:yamlConfig['MaxParticles'],:]
-            else:        
+            else:
                 features_val_i = np.concatenate([features_val_i, np.zeros((yamlConfig['MaxParticles']-nParticles, len(features)-1))])
             features_2dval[i, :, :] = features_val_i
 
@@ -83,11 +85,11 @@ def get_features(options, yamlConfig):
         for i in range(0, len(labels_df)):
             features_df_i = features_df[features_df['j_index']==labels_df['j_index'].iloc[i]]
             index_values = features_df_i.index.values
-            
+
             xbins = np.linspace(yamlConfig['MinX'],yamlConfig['MaxX'],yamlConfig['BinsX']+1)
             ybins = np.linspace(yamlConfig['MinY'],yamlConfig['MaxY'],yamlConfig['BinsY']+1)
 
-            x = features_df_i[features[0]]           
+            x = features_df_i[features[0]]
             y = features_df_i[features[1]]
             w = features_df_i[features[2]]
 
@@ -99,7 +101,7 @@ def get_features(options, yamlConfig):
         features_val = features_2dval
 
     X_train_val, X_test, y_train_val, y_test = train_test_split(features_val, labels_val, test_size=0.2, random_state=42)
-    
+
     #Normalize inputs
     if yamlConfig['NormalizeInputs'] and yamlConfig['InputType']!='Conv1D' and yamlConfig['InputType']!='Conv2D':
         scaler = preprocessing.StandardScaler().fit(X_train_val)
@@ -113,14 +115,14 @@ def get_features(options, yamlConfig):
         X_test = scaler.transform(X_test)
         y_train_val = y_train_val * 2 - 1
         y_test = y_test * 2 - 1
-        
+
     #Normalize conv inputs
     if yamlConfig['NormalizeInputs'] and yamlConfig['InputType']=='Conv1D':
         reshape_X_train_val = X_train_val.reshape(X_train_val.shape[0]*X_train_val.shape[1],X_train_val.shape[2])
         scaler = preprocessing.StandardScaler().fit(reshape_X_train_val)
         for p in range(X_train_val.shape[1]):
             X_train_val[:,p,:] = scaler.transform(X_train_val[:,p,:])
-            X_test[:,p,:] = scaler.transform(X_test[:,p,:])    
+            X_test[:,p,:] = scaler.transform(X_test[:,p,:])
 
     if 'j_index' in labels:
         labels = labels[:-1]
@@ -141,9 +143,9 @@ if __name__ == "__main__":
     parser.add_option('-o','--output'   ,action='store',type='string',dest='outputDir'   ,default='train_simple/', help='output directory')
     parser.add_option('-c','--config'   ,action='store',type='string', dest='config', default='train_config_threelayer.yml', help='configuration file')
     (options,args) = parser.parse_args()
-     
+
     yamlConfig = parse_config(options.config)
-    
+
     if os.path.isdir(options.outputDir):
         #raise Exception('output directory must not exist yet')
         raw_input("Warning: output directory exists. Press Enter to continue...")
@@ -151,9 +153,9 @@ if __name__ == "__main__":
         os.mkdir(options.outputDir)
 
     X_train_val, X_test, y_train_val, y_test, labels  = get_features(options, yamlConfig)
-    
+
     #from models import three_layer_model
-    model = getattr(models, yamlConfig['KerasModel'])    
+    model = getattr(models, yamlConfig['KerasModel'])
     if 'L1RegR' in yamlConfig:
         keras_model = model(Input(shape=X_train_val.shape[1:]), y_train_val.shape[1], l1Reg=yamlConfig['L1Reg'], l1RegR=yamlConfig['L1RegR'] )
     else:
@@ -165,12 +167,12 @@ if __name__ == "__main__":
     adam = Adam(lr=startlearningrate)
     keras_model.compile(optimizer=adam, loss=[yamlConfig['KerasLoss']], metrics=['accuracy'])
 
-        
-    callbacks=all_callbacks(stop_patience=1000, 
+
+    callbacks=all_callbacks(stop_patience=1000,
                             lr_factor=0.5,
                             lr_patience=10,
-                            lr_epsilon=0.000001, 
-                            lr_cooldown=2, 
+                            lr_epsilon=0.000001,
+                            lr_cooldown=2,
                             lr_minimum=0.0000001,
                             outputDir=options.outputDir)
 
