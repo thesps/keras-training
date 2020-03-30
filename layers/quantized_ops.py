@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import
-import keras.backend as K
+import tensorflow.keras.backend as K
 import tensorflow as tf
 import numpy as np
 

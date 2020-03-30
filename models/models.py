@@ -1,7 +1,9 @@
 from __future__ import print_function
-from keras.layers import Dense, Dropout, Flatten, Convolution2D, merge, Convolution1D, Conv2D, Conv1D, Input, SpatialDropout1D, GRU, MaxPooling1D, AveragePooling1D, SimpleRNN, LSTM, BatchNormalization, Activation
-from keras.models import Model, Sequential
-from keras.regularizers import l1
+import sys
+sys.path.insert(0, '../layers/')
+from tensorflow.keras.layers import Dense, Dropout, Flatten, Convolution2D, Convolution1D, Conv2D, Conv1D, Input, SpatialDropout1D, GRU, MaxPooling1D, AveragePooling1D, SimpleRNN, LSTM, BatchNormalization, Activation
+from tensorflow.keras.models import Model, Sequential
+from tensorflow.keras.regularizers import l1
 import h5py
 from constraints import *
 from quantized_layers import BinaryDense, TernaryDense, QuantizedDense
@@ -23,15 +25,15 @@ def dense_model(Inputs, nclasses, l1Reg=0, dropoutRate=0.25):
     """
     Dense matrix, defaults similar to 2016 DeepCSV training
     """
-    x = Dense(200, activation='relu', kernel_initializer='lecun_uniform', name='fc1_relu', W_regularizer=l1(l1Reg))(Inputs)
+    x = Dense(200, activation='relu', kernel_initializer='lecun_uniform', name='fc1_relu', kernel_regularizer=l1(l1Reg))(Inputs)
     x = Dropout(dropoutRate)(x)
-    x = Dense(200, activation='relu', kernel_initializer='lecun_uniform', name='fc2_relu', W_regularizer=l1(l1Reg))(x)
+    x = Dense(200, activation='relu', kernel_initializer='lecun_uniform', name='fc2_relu', kernel_regularizer=l1(l1Reg))(x)
     x = Dropout(dropoutRate)(x)
-    x = Dense(200, activation='relu', kernel_initializer='lecun_uniform', name='fc3_relu', W_regularizer=l1(l1Reg))(x)
+    x = Dense(200, activation='relu', kernel_initializer='lecun_uniform', name='fc3_relu', kernel_regularizer=l1(l1Reg))(x)
     x = Dropout(dropoutRate)(x)
-    x = Dense(200, activation='relu', kernel_initializer='lecun_uniform', name='fc4_relu', W_regularizer=l1(l1Reg))(x)
+    x = Dense(200, activation='relu', kernel_initializer='lecun_uniform', name='fc4_relu', kernel_regularizer=l1(l1Reg))(x)
     x = Dropout(dropoutRate)(x)
-    x = Dense(200, activation='relu', kernel_initializer='lecun_uniform', name='fc5_relu', W_regularizer=l1(l1Reg))(x)
+    x = Dense(200, activation='relu', kernel_initializer='lecun_uniform', name='fc5_relu', kernel_regularizer=l1(l1Reg))(x)
     predictions = Dense(nclasses, activation='softmax', kernel_initializer='lecun_uniform', name = 'output_softmax')(x)
     model = Model(inputs=Inputs, outputs=predictions)
     return model
@@ -41,9 +43,9 @@ def two_layer_model(Inputs, nclasses, l1Reg=0):
     One hidden layer model
     """
     x = Dense(32, activation='relu', kernel_initializer='lecun_uniform', 
-              name='fc1_relu', W_regularizer=l1(l1Reg))(Inputs)
+              name='fc1_relu', kernel_regularizer=l1(l1Reg))(Inputs)
     predictions = Dense(nclasses, activation='sigmoid', kernel_initializer='lecun_uniform', 
-                        name = 'output_sigmoid', W_regularizer=l1(l1Reg))(x)
+                        name = 'output_sigmoid', kernel_regularizer=l1(l1Reg))(x)
     model = Model(inputs=Inputs, outputs=predictions)
     return model
 
@@ -52,10 +54,10 @@ def two_layer_model_constraint(Inputs, nclasses, l1Reg=0, h5fName=None):
     One hidden layer model
     """
     x = Dense(32, activation='relu', kernel_initializer='lecun_uniform', 
-              name='fc1_relu', W_regularizer=l1(l1Reg), 
+              name='fc1_relu', kernel_regularizer=l1(l1Reg), 
               kernel_constraint = zero_some_weights(binary_tensor=h5f['fc1_relu'][()].tolist()))(Inputs)
     predictions = Dense(nclasses, activation='sigmoid', kernel_initializer='lecun_uniform', 
-                        name = 'output_sigmoid', W_regularizer=l1(l1Reg), 
+                        name = 'output_sigmoid', kernel_regularizer=l1(l1Reg), 
                         kernel_constraint = zero_some_weights(binary_tensor=h5f['output_softmax'][()].tolist()))(x)
     model = Model(inputs=Inputs, outputs=predictions)
     return model
@@ -65,13 +67,13 @@ def three_layer_model(Inputs, nclasses, l1Reg=0):
     Two hidden layers model
     """
     x = Dense(64, activation='relu', kernel_initializer='lecun_uniform', 
-              name='fc1_relu', W_regularizer=l1(l1Reg))(Inputs)
+              name='fc1_relu', kernel_regularizer=l1(l1Reg))(Inputs)
     x = Dense(32, activation='relu', kernel_initializer='lecun_uniform', 
-              name='fc2_relu', W_regularizer=l1(l1Reg))(x)
+              name='fc2_relu', kernel_regularizer=l1(l1Reg))(x)
     x = Dense(32, activation='relu', kernel_initializer='lecun_uniform', 
-              name='fc3_relu', W_regularizer=l1(l1Reg))(x)
+              name='fc3_relu', kernel_regularizer=l1(l1Reg))(x)
     predictions = Dense(nclasses, activation='softmax', kernel_initializer='lecun_uniform', 
-                        name='output_softmax', W_regularizer=l1(l1Reg))(x)
+                        name='output_softmax', kernel_regularizer=l1(l1Reg))(x)
     model = Model(inputs=Inputs, outputs=predictions)
     return model
 
@@ -80,22 +82,22 @@ def three_layer_model_batch_norm(Inputs, nclasses, l1Reg=0):
     Two hidden layers model
     """
     x = Dense(64, kernel_initializer='lecun_uniform', 
-              name='fc1_relu', W_regularizer=l1(l1Reg))(Inputs)
+              name='fc1_relu', kernel_regularizer=l1(l1Reg))(Inputs)
     x = BatchNormalization(epsilon=1e-6, momentum=0.9, name='bn1')(x)
     x = Activation(activation='relu', name='relu1')(x)
               
     x = Dense(32, kernel_initializer='lecun_uniform', 
-              name='fc2_relu', W_regularizer=l1(l1Reg))(x)
+              name='fc2_relu', kernel_regularizer=l1(l1Reg))(x)
     x = BatchNormalization(epsilon=1e-6, momentum=0.9, name='bn2')(x)
     x = Activation(activation='relu', name='relu2')(x)
     
     x = Dense(32, kernel_initializer='lecun_uniform', 
-              name='fc3_relu', W_regularizer=l1(l1Reg))(x)
+              name='fc3_relu', kernel_regularizer=l1(l1Reg))(x)
     x = BatchNormalization(epsilon=1e-6, momentum=0.9, name='bn3')(x)
     x = Activation(activation='relu', name='relu3')(x)
     
     x = Dense(nclasses, kernel_initializer='lecun_uniform', 
-                        name='output_softmax', W_regularizer=l1(l1Reg))(x)
+                        name='output_softmax', kernel_regularizer=l1(l1Reg))(x)
     x = BatchNormalization(epsilon=1e-6, momentum=0.9, name='bn4')(x)
     predictions = Activation(activation='softmax', name='softmax')(x)
 
@@ -178,13 +180,13 @@ def three_layer_model_tanh(Inputs, nclasses, l1Reg=0):
     Two hidden layers model
     """
     x = Dense(64, activation='tanh', kernel_initializer='lecun_uniform', 
-              name='fc1_tanh', W_regularizer=l1(l1Reg))(Inputs)
+              name='fc1_tanh', kernel_regularizer=l1(l1Reg))(Inputs)
     x = Dense(32, activation='tanh', kernel_initializer='lecun_uniform', 
-              name='fc2_tanh', W_regularizer=l1(l1Reg))(x)
+              name='fc2_tanh', kernel_regularizer=l1(l1Reg))(x)
     x = Dense(32, activation='tanh', kernel_initializer='lecun_uniform', 
-              name='fc3_tanh', W_regularizer=l1(l1Reg))(x)
+              name='fc3_tanh', kernel_regularizer=l1(l1Reg))(x)
     predictions = Dense(nclasses, activation='softmax', kernel_initializer='lecun_uniform', 
-                        name='output_softmax', W_regularizer=l1(l1Reg))(x)
+                        name='output_softmax', kernel_regularizer=l1(l1Reg))(x)
     model = Model(inputs=Inputs, outputs=predictions)
     return model
 
@@ -194,16 +196,16 @@ def three_layer_model_constraint(Inputs, nclasses, l1Reg=0, h5fName=None):
     """
     h5f = h5py.File(h5fName)
     x = Dense(64, activation='relu', kernel_initializer='lecun_uniform', 
-              name='fc1_relu', W_regularizer=l1(l1Reg), 
+              name='fc1_relu', kernel_regularizer=l1(l1Reg), 
               kernel_constraint = zero_some_weights(binary_tensor=h5f['fc1_relu'][()].tolist()))(Inputs)
     x = Dense(32, activation='relu', kernel_initializer='lecun_uniform', 
-              name='fc2_relu', W_regularizer=l1(l1Reg), 
+              name='fc2_relu', kernel_regularizer=l1(l1Reg), 
               kernel_constraint = zero_some_weights(binary_tensor=h5f['fc2_relu'][()].tolist()))(x)
     x = Dense(32, activation='relu', kernel_initializer='lecun_uniform', 
-              name='fc3_relu', W_regularizer=l1(l1Reg), 
+              name='fc3_relu', kernel_regularizer=l1(l1Reg), 
               kernel_constraint = zero_some_weights(binary_tensor=h5f['fc3_relu'][()].tolist()))(x)
     predictions = Dense(nclasses, activation='softmax', kernel_initializer='lecun_uniform', 
-                        name='output_softmax', W_regularizer=l1(l1Reg), 
+                        name='output_softmax', kernel_regularizer=l1(l1Reg), 
                         kernel_constraint = zero_some_weights(binary_tensor=h5f['output_softmax'][()].tolist()))(x)
     model = Model(inputs=Inputs, outputs=predictions)
     return model
@@ -215,16 +217,16 @@ def three_layer_model_tanh_constraint(Inputs, nclasses, l1Reg=0, h5fName=None):
     """
     h5f = h5py.File(h5fName)
     x = Dense(64, activation='tanh', kernel_initializer='lecun_uniform', 
-              name='fc1_tanh', W_regularizer=l1(l1Reg), 
+              name='fc1_tanh', kernel_regularizer=l1(l1Reg), 
               kernel_constraint = zero_some_weights(binary_tensor=h5f['fc1_tanh'][()].tolist()))(Inputs)
     x = Dense(32, activation='tanh', kernel_initializer='lecun_uniform', 
-              name='fc2_tanh', W_regularizer=l1(l1Reg), 
+              name='fc2_tanh', kernel_regularizer=l1(l1Reg), 
               kernel_constraint = zero_some_weights(binary_tensor=h5f['fc2_tanh'][()].tolist()))(x)
     x = Dense(32, activation='tanh', kernel_initializer='lecun_uniform', 
-              name='fc3_tanh', W_regularizer=l1(l1Reg), 
+              name='fc3_tanh', kernel_regularizer=l1(l1Reg), 
               kernel_constraint = zero_some_weights(binary_tensor=h5f['fc3_tanh'][()].tolist()))(x)
     predictions = Dense(nclasses, activation='softmax', kernel_initializer='lecun_uniform', 
-                        name='output_softmax', W_regularizer=l1(l1Reg), 
+                        name='output_softmax', kernel_regularizer=l1(l1Reg), 
                         kernel_constraint = zero_some_weights(binary_tensor=h5f['output_softmax'][()].tolist()))(x)
     model = Model(inputs=Inputs, outputs=predictions)
     return model
@@ -243,18 +245,18 @@ def conv1d_model(Inputs, nclasses, l1Reg=0):
     """
     x = Conv1D(filters=8, kernel_size=4, strides=1, padding='same',
                kernel_initializer='he_normal', use_bias=True, name='conv1_relu',
-               activation = 'relu', W_regularizer=l1(l1Reg))(Inputs)
+               activation = 'relu', kernel_regularizer=l1(l1Reg))(Inputs)
     x = Conv1D(filters=4, kernel_size=4, strides=2, padding='same',
                kernel_initializer='he_normal', use_bias=True, name='conv2_relu',
-               activation = 'relu', W_regularizer=l1(l1Reg))(x)
+               activation = 'relu', kernel_regularizer=l1(l1Reg))(x)
     x = Conv1D(filters=2, kernel_size=4, strides=3, padding='same',
                kernel_initializer='he_normal', use_bias=True, name='conv3_relu',
-               activation = 'relu', W_regularizer=l1(l1Reg))(x)
+               activation = 'relu', kernel_regularizer=l1(l1Reg))(x)
     x = Flatten()(x)
     x = Dense(32, activation='relu', kernel_initializer='lecun_uniform', 
-              name='fc1_relu', W_regularizer=l1(l1Reg))(x)
+              name='fc1_relu', kernel_regularizer=l1(l1Reg))(x)
     predictions = Dense(nclasses, activation='softmax', kernel_initializer='lecun_uniform', 
-                        name='output_softmax', W_regularizer=l1(l1Reg))(x)
+                        name='output_softmax', kernel_regularizer=l1(l1Reg))(x)
     model = Model(inputs=Inputs, outputs=predictions)
     print(model.summary())
     return model
@@ -266,22 +268,22 @@ def conv1d_model_constraint(Inputs, nclasses, l1Reg=0, h5fName=None):
     h5f = h5py.File(h5fName)
     x = Conv1D(filters=8, kernel_size=4, strides=1, padding='same',
                kernel_initializer='he_normal', use_bias=True, name='conv1_relu',
-               activation = 'relu', W_regularizer=l1(l1Reg), 
+               activation = 'relu', kernel_regularizer=l1(l1Reg), 
                kernel_constraint = zero_some_weights(binary_tensor=h5f['conv1_relu'][()].tolist()))(Inputs)
     x = Conv1D(filters=8, kernel_size=4, strides=1, padding='same',
                kernel_initializer='he_normal', use_bias=True, name='conv2_relu',
-               activation = 'relu', W_regularizer=l1(l1Reg), 
+               activation = 'relu', kernel_regularizer=l1(l1Reg), 
                kernel_constraint = zero_some_weights(binary_tensor=h5f['conv2_relu'][()].tolist()))(x)
     x = Conv1D(filters=8, kernel_size=4, strides=1, padding='same',
                kernel_initializer='he_normal', use_bias=True, name='conv3_relu',
-               activation = 'relu', W_regularizer=l1(l1Reg), 
+               activation = 'relu', kernel_regularizer=l1(l1Reg), 
                kernel_constraint = zero_some_weights(binary_tensor=h5f['conv3_relu'][()].tolist()))(x)
     x = Flatten()(x)
     x = Dense(32, activation='relu', kernel_initializer='lecun_uniform', 
-              name='fc1_relu', W_regularizer=l1(l1Reg), 
+              name='fc1_relu', kernel_regularizer=l1(l1Reg), 
               kernel_constraint = zero_some_weights(binary_tensor=h5f['fc1_relu'][()].tolist()))(x)
     predictions = Dense(nclasses, activation='softmax', kernel_initializer='lecun_uniform', 
-                        name='output_softmax', W_regularizer=l1(l1Reg), 
+                        name='output_softmax', kernel_regularizer=l1(l1Reg), 
                         kernel_constraint = zero_some_weights(binary_tensor=h5f['output_softmax'][()].tolist()))(x)
     model = Model(inputs=Inputs, outputs=predictions)
     print(model.summary())

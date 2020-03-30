@@ -1,5 +1,6 @@
 from __future__ import print_function
 import sys
+sys.path.insert(0, '../models')
 import os
 import keras
 import numpy as np
@@ -8,10 +9,10 @@ seed = 42
 np.random.seed(seed)
 from optparse import OptionParser
 import h5py
-from keras.optimizers import Adam, Nadam
+from tensorflow.keras.optimizers import Adam, Nadam
 from callbacks import all_callbacks
 import pandas as pd
-from keras.layers import Input
+from tensorflow.keras.layers import Input
 from sklearn.model_selection import train_test_split
 from sklearn import preprocessing
 import yaml
@@ -146,7 +147,7 @@ if __name__ == "__main__":
     
     if os.path.isdir(options.outputDir):
         #raise Exception('output directory must not exist yet')
-        raw_input("Warning: output directory exists. Press Enter to continue...")
+        input("Warning: output directory exists. Press Enter to continue...")
     else:
         os.mkdir(options.outputDir)
 
