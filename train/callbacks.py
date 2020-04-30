@@ -6,7 +6,7 @@ Created on 7 Apr 2017
 from __future__ import print_function
 
 
-from keras.callbacks import Callback, EarlyStopping,History,ModelCheckpoint,TensorBoard,ReduceLROnPlateau
+from tensorflow.keras.callbacks import Callback, EarlyStopping,History,ModelCheckpoint,TensorBoard,ReduceLROnPlateau
 # loss per epoch
 from time import time
 from pdb import set_trace

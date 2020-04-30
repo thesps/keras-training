@@ -2,7 +2,7 @@ from __future__ import print_function
 import sys
 sys.path.insert(0, '../models')
 import os
-import keras
+from tensorflow import keras
 import numpy as np
 # fix random seed for reproducibility
 seed = 42
@@ -133,7 +133,7 @@ def parse_config(config_file) :
 
     print("Loading configuration from", config_file)
     config = open(config_file, 'r')
-    return yaml.load(config)
+    return yaml.load(config, Loader=yaml.SafeLoader)
 
 if __name__ == "__main__":
     parser = OptionParser()

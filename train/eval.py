@@ -2,10 +2,12 @@ from __future__ import print_function
 import six
 import sys
 import os
+sys.path.insert(0, '../layers')
+sys.path.insert(0, '../models')
 from optparse import OptionParser
-from keras.models import load_model, Model
+from tensorflow.keras.models import load_model, Model
 from argparse import ArgumentParser
-from keras import backend as K
+from tensorflow.keras import backend as K
 import numpy as np
 # fix random seed for reproducibility
 seed = 42
@@ -21,12 +23,11 @@ from sklearn import preprocessing
 from sklearn.metrics import confusion_matrix
 import itertools
 from constraints import ZeroSomeWeights
-from keras.utils.generic_utils import get_custom_objects
+from tensorflow.keras.utils import get_custom_objects
 get_custom_objects().update({"ZeroSomeWeights": ZeroSomeWeights})
 import yaml
 from train import parse_config, get_features
-from quantized_layers import Clip, BinaryDense, TernaryDense, QuantizedDense
-from models import binary_tanh, ternary_tanh, quantized_relu
+from qkeras import *
 
 # To turn off GPU
 #os.environ['CUDA_VISIBLE_DEVICES'] = ''
@@ -130,21 +131,19 @@ if __name__ == "__main__":
     
     if os.path.isdir(options.outputDir):
         #raise Exception('output directory must not exist yet')
-        raw_input("Warning: output directory exists. Press Enter to continue...")
+        input("Warning: output directory exists. Press Enter to continue...")
     else:
         os.mkdir(options.outputDir)
 
     X_train_val, X_test, y_train_val, y_test, labels  = get_features(options, yamlConfig)
 
-
-    model = load_model(options.inputModel, custom_objects={'ZeroSomeWeights':ZeroSomeWeights,
-                                                           'BinaryDense': BinaryDense,
-                                                           'TernaryDense': TernaryDense,
-                                                           'QuantizedDense': QuantizedDense,
-                                                           'binary_tanh': binary_tanh,
-                                                           'ternary_tanh': ternary_tanh,
-                                                           'quantized_relu': quantized_relu,
-                                                           'Clip': Clip})
+    custom_objects={'ZeroSomeWeights':ZeroSomeWeights,
+                    'Clip': Clip,
+                    'QDense': QDense,
+                    'QActivation' : QActivation,
+                    'quantized_relu' : quantized_relu}   
+    utils._add_supported_quantized_objects(custom_objects)
+    model = load_model(options.inputModel, custom_objects=custom_objects)
 
     y_predict = makeRoc(X_test, labels, y_test, model, options.outputDir)
     y_test_proba = y_test.argmax(axis=1)
@@ -191,8 +190,8 @@ if __name__ == "__main__":
         plt.savefig(options.outputDir+"/loss.pdf")
 
         plt.figure()
-        val_acc = np.asarray(myDictOfLists[b'val_acc'])
-        acc = np.asarray(myDictOfLists[b'acc'])
+        val_acc = np.asarray(myDictOfLists[b'val_accuracy'])
+        acc = np.asarray(myDictOfLists[b'accuracy'])
         plt.plot(val_acc, label='validation')
         plt.plot(acc, label='train')
         plt.legend()
