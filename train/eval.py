@@ -65,29 +65,9 @@ def plot_confusion_matrix(cm, classes,
     plt.ylabel('True label')
     plt.xlabel('Predicted label')
 
-def makeRoc(features_val, labels, labels_val, model, outputDir):
-
-    print('in makeRoc()')
-    if 'j_index' in labels: labels.remove('j_index')
-        
-    predict_test = model.predict(features_val)
-
-    df = pd.DataFrame()
-    
-    fpr = {}
-    tpr = {}
-    auc1 = {}
-    
-    plt.figure()       
+def plotRoc(fpr, tpr, auc, labels, linestyle):
     for i, label in enumerate(labels):
-        df[label] = labels_val[:,i]
-        df[label + '_pred'] = predict_test[:,i]
-        
-        fpr[label], tpr[label], threshold = roc_curve(df[label],df[label+'_pred'])
-
-        auc1[label] = auc(fpr[label], tpr[label])
-            
-        plt.plot(tpr[label],fpr[label],label='%s tagger, AUC = %.1f%%'%(label.replace('j_',''),auc1[label]*100.))
+        plt.plot(tpr[label],fpr[label],label='%s tagger, AUC = %.1f%%'%(label.replace('j_',''),auc[label]*100.),linestyle=linestyle)
     plt.semilogy()
     plt.xlabel("Signal Efficiency")
     plt.ylabel("Background Efficiency")
@@ -95,10 +75,35 @@ def makeRoc(features_val, labels, labels_val, model, outputDir):
     plt.grid(True)
     plt.legend(loc='upper left')
     plt.figtext(0.25, 0.90,'hls4ml',fontweight='bold', wrap=True, horizontalalignment='right', fontsize=14)
-    #plt.figtext(0.35, 0.90,'preliminary', style='italic', wrap=True, horizontalalignment='center', fontsize=14) 
-    plt.savefig('%s/ROC.pdf'%(options.outputDir))
-    return predict_test
 
+def rocData(features_val, labels, labels_val, model):
+    predict_test = model.predict(features_val)
+
+    df = pd.DataFrame()
+
+    fpr = {}
+    tpr = {}
+    auc1 = {}
+
+    for i, label in enumerate(labels):
+        df[label] = labels_val[:,i]
+        df[label + '_pred'] = predict_test[:,i]
+
+        fpr[label], tpr[label], threshold = roc_curve(df[label],df[label+'_pred'])
+
+        auc1[label] = auc(fpr[label], tpr[label])
+    return fpr, tpr, auc1, predict_test
+
+def makeRoc(features_val, labels, labels_val, model, outputDir):
+
+    print('in makeRoc()')
+    if 'j_index' in labels: labels.remove('j_index')
+        
+    fpr, tpr, auc1, predict_test = rocData(features_val, labels, labels_val, model)
+    plt.figure()            
+    plotRoc(fpr, tpr, auc1, labels, '-')
+    plt.savefig('%s/ROC.pdf'%(outputDir))
+    return predict_test
     
 def _byteify(data, ignore_dicts = False):
     # if this is a unicode string, return its string representation
@@ -118,33 +123,8 @@ def _byteify(data, ignore_dicts = False):
     return data
 
 
-if __name__ == "__main__":
-    parser = OptionParser()
-    parser.add_option('-m','--model'   ,action='store',type='string',dest='inputModel'   ,default='train_simple/KERAS_check_best_model.h5', help='input model')
-    parser.add_option('-i','--input'   ,action='store',type='string',dest='inputFile'   ,default='../data/processed-pythia82-lhc13-all-pt1-50k-r1_h022_e0175_t220_nonu_truth.z', help='input file')
-    parser.add_option('-t','--tree'   ,action='store',type='string',dest='tree'   ,default='t_allpar_new', help='tree name')
-    parser.add_option('-o','--output'   ,action='store',type='string',dest='outputDir'   ,default='eval_simple/', help='output directory')
-    parser.add_option('-c','--config'   ,action='store',type='string', dest='config', default='train_config_threelayer.yml', help='configuration file')
-    (options,args) = parser.parse_args()
-
-    yamlConfig = parse_config(options.config)
-    
-    if os.path.isdir(options.outputDir):
-        #raise Exception('output directory must not exist yet')
-        input("Warning: output directory exists. Press Enter to continue...")
-    else:
-        os.mkdir(options.outputDir)
-
+def eval(model, options, yamlConfig):
     X_train_val, X_test, y_train_val, y_test, labels  = get_features(options, yamlConfig)
-
-    custom_objects={'ZeroSomeWeights':ZeroSomeWeights,
-                    'Clip': Clip,
-                    'QDense': QDense,
-                    'QActivation' : QActivation,
-                    'quantized_relu' : quantized_relu}   
-    utils._add_supported_quantized_objects(custom_objects)
-    model = load_model(options.inputModel, custom_objects=custom_objects)
-
     y_predict = makeRoc(X_test, labels, y_test, model, options.outputDir)
     y_test_proba = y_test.argmax(axis=1)
     y_predict_proba = y_predict.argmax(axis=1)
@@ -167,6 +147,7 @@ if __name__ == "__main__":
     #plt.figtext(0.38, 0.90,'preliminary', style='italic', wrap=True, horizontalalignment='center', fontsize=14) 
     plt.savefig(options.outputDir+"/confusion_matrix_norm.pdf")
         
+def eval_extra(model, options, yamlConfig):
     import json
 
     if os.path.isfile('%s/full_info.log'%os.path.dirname(options.inputModel)):
@@ -198,5 +179,32 @@ if __name__ == "__main__":
         plt.xlabel('epoch')
         plt.ylabel('accuracy')
         plt.savefig(options.outputDir+"/acc.pdf")
+
+
+if __name__ == "__main__":
+    parser = OptionParser()
+    parser.add_option('-m','--model'   ,action='store',type='string',dest='inputModel'   ,default='train_simple/KERAS_check_best_model.h5', help='input model')
+    parser.add_option('-i','--input'   ,action='store',type='string',dest='inputFile'   ,default='../data/processed-pythia82-lhc13-all-pt1-50k-r1_h022_e0175_t220_nonu_truth.z', help='input file')
+    parser.add_option('-t','--tree'   ,action='store',type='string',dest='tree'   ,default='t_allpar_new', help='tree name')
+    parser.add_option('-o','--output'   ,action='store',type='string',dest='outputDir'   ,default='eval_simple/', help='output directory')
+    parser.add_option('-c','--config'   ,action='store',type='string', dest='config', default='train_config_threelayer.yml', help='configuration file')
+    (options,args) = parser.parse_args()
+
+    yamlConfig = parse_config(options.config)
+    
+    if os.path.isdir(options.outputDir):
+        #raise Exception('output directory must not exist yet')
+        input("Warning: output directory exists. Press Enter to continue...")
+    else:
+        os.mkdir(options.outputDir)
+
+    X_train_val, X_test, y_train_val, y_test, labels  = get_features(options, yamlConfig)
+
+    custom_objects={'ZeroSomeWeights':ZeroSomeWeights,
+                    'Clip': Clip}
+    utils._add_supported_quantized_objects(custom_objects)
+    model = load_model(options.inputModel, custom_objects=custom_objects)
+    eval(model, options, yamlConfig)
+
 
         

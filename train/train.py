@@ -135,6 +135,18 @@ def parse_config(config_file) :
     config = open(config_file, 'r')
     return yaml.load(config, Loader=yaml.SafeLoader)
 
+def default_options_and_config():
+    class dummy:
+        def __init__(self):
+            self.x = 0
+    opts = dummy()
+    opts.tree = 't_allpar_new'
+    opts.inputFile = '../data/processed-pythia82-lhc13-all-pt1-50k-r1_h022_e0175_t220_nonu_truth.z'
+    opts.outputDir = './train-simple'
+    cfg = open('train_config_threelayer.yml')
+    cfg = yaml.load(cfg, Loader=yaml.SafeLoader)
+    return opts, cfg
+
 if __name__ == "__main__":
     parser = OptionParser()
     parser.add_option('-i','--input'   ,action='store',type='string',dest='inputFile'   ,default='../data/processed-pythia82-lhc13-all-pt1-50k-r1_h022_e0175_t220_nonu_truth.z', help='input file')
