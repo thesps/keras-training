@@ -8,15 +8,12 @@ sys.path.insert(0, '../models')
 import models
 from joblib import Parallel, delayed
 
-opts, cfg = default_options_and_config()
-
-X_train_val, X_test, y_train_val, y_test, labels  = get_features(opts, cfg)
 
 qtemplate = {'default'  : {'kernel_quantizer' : None, 'bias_quantizer' : None},
              'QDense' : {'kernel_quantizer' : None, 'bias_quantizer' : None},
              'QActivation' : {'relu' : None}}
 
-def build_model(i, opts, cfg):
+def build_model(i, X, y, opts, cfg):
     if i == 1:
         quantizer = 'binary(alpha=1)'
         #act_quantizer = 'binary_tanh()'
@@ -36,11 +33,11 @@ def build_model(i, opts, cfg):
     opts.outputDir = "scan_models_relu4/model_{}".format(i)
 
     model = getattr(models, cfg['KerasModel'])
-    model = model(Input(shape=X_train_val.shape[1:]), y_train_val.shape[1], l1Reg=cfg['L1Reg'])
+    model = model(Input(shape=X.shape[1:]), y.shape[1], l1Reg=cfg['L1Reg'])
     model = model_quantize(model, qtemplate, i)
     return model
 
-def train_model(model, opts, cfg):
+def train_model(model, X, y, opts, cfg):
     startlearningrate=0.0001
     adam = Adam(lr=startlearningrate)
     model.compile(optimizer=adam, loss=[cfg['KerasLoss']], metrics=['accuracy'])
@@ -54,14 +51,16 @@ def train_model(model, opts, cfg):
                             lr_minimum=0.0000001,
                             outputDir=opts.outputDir)
 
-    model.fit(X_train_val, y_train_val, batch_size = 1024, epochs = 100,
+    model.fit(X, y, batch_size = 1024, epochs = 100,
                     validation_split = 0.25, shuffle = True, callbacks = callbacks.callbacks)
     return model
 
-def build_train_model(i, opts, cfg):
-    model = build_model(i, opts, cfg)
-    model = train_model(model, opts, cfg)
+def build_train_model(i, X, y, opts, cfg):
+    model = build_model(i, X, y, opts, cfg)
+    model = train_model(model, X, y, opts, cfg)
 
 if __name__ == '__main__':
-    Parallel(n_jobs=4)(delayed(build_train_model)(i, opts, cfg) for i in range(1, 17))
+    opts, cfg = default_options_and_config()
+    X_train_val, X_test, y_train_val, y_test, labels  = get_features(opts, cfg)
+    Parallel(n_jobs=4)(delayed(build_train_model)(i, X_train_val, y_train_val, opts, cfg) for i in range(1, 17))
     

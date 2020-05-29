@@ -17,10 +17,6 @@ def build(i):
     hls4ml_cfg['LayerName']['softmax']['exp_table_t'] = 'ap_fixed<18,9>'
     hls4ml_cfg['LayerName']['softmax']['inv_table_t'] = 'ap_fixed<18,4>'
     if i < 3:
-        #hls4ml_cfg['Model'] = {}
-        #hls4ml_cfg['Model']['Precision'] = 'ap_fixed<16,6>'
-        #hls4ml_cfg['Model']['ReuseFactor'] = 1
-        #hls4ml_cfg['Model']['Optimizers'] = btnn_passes
         hls4ml_cfg['Optimizers'] = btnn_passes
     hls_model = hls4ml.converters.convert_from_keras_model(model, output_dir='scan_models/model_{}/hls4ml_prj'.format(i),
                                                            fpga_part='xcvu9p-flgb2104-2L-e', hls_config=hls4ml_cfg)

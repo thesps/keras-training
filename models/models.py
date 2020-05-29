@@ -121,15 +121,15 @@ def three_layer_opt_model_1(Inputs, nclasses, l1Reg=0):
     'relu3': 'quantized_relu(4,2)'
     }
 
-    x = Dense(64, kernel_initializer='lecun_uniform', use_bias=False,
+    x = Dense(32, kernel_initializer='lecun_uniform', use_bias=False,
               name='fc1_relu', kernel_regularizer=l1(l1Reg))(Inputs)
     x = BatchNormalization(epsilon=1e-6, momentum=0.9, name='bn1')(x)
     x = Activation(activation='relu', name='relu1')(x)
-    x = Dense(32, kernel_initializer='lecun_uniform', use_bias=False,
+    x = Dense(16, kernel_initializer='lecun_uniform', use_bias=False,
               name='fc2_relu', kernel_regularizer=l1(l1Reg))(x)
     x = BatchNormalization(epsilon=1e-6, momentum=0.9, name='bn2')(x)
     x = Activation(activation='relu', name='relu2')(x)
-    x = Dense(32, kernel_initializer='lecun_uniform', use_bias=False,
+    x = Dense(16, kernel_initializer='lecun_uniform', use_bias=False,
               name='fc3_relu', kernel_regularizer=l1(l1Reg))(x)
     x = BatchNormalization(epsilon=1e-6, momentum=0.9, name='bn3')(x)
     x = Activation(activation='relu', name='relu3')(x)
